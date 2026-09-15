@@ -11,16 +11,20 @@ import { getCampgroundBySlug, getRelatedCampgrounds } from "@/lib/campgrounds/re
 const rupiah = new Intl.NumberFormat("id-ID");
 const verificationLabel = { verified: "Terverifikasi ICL", community_updated: "Community Updated", needs_update: "Perlu diperbarui" };
 
+type CampgroundDetailProps = { params: Promise<{ slug: string }> };
+
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const campground = await getCampgroundBySlug(params.slug);
+export async function generateMetadata({ params }: CampgroundDetailProps): Promise<Metadata> {
+  const { slug } = await params;
+  const campground = await getCampgroundBySlug(slug);
   if (!campground) return { title: "Campground tidak ditemukan" };
   return { title: campground.name, description: campground.shortDescription, openGraph: { title: campground.name, description: campground.shortDescription, images: [campground.image] } };
 }
 
-export default async function CampgroundDetailPage({ params }: { params: { slug: string } }) {
-  const campground = await getCampgroundBySlug(params.slug);
+export default async function CampgroundDetailPage({ params }: CampgroundDetailProps) {
+  const { slug } = await params;
+  const campground = await getCampgroundBySlug(slug);
   if (!campground) notFound();
   const related = await getRelatedCampgrounds(campground, 3);
   const hasVerificationDate = campground.lastVerifiedAt !== "1970-01-01";
