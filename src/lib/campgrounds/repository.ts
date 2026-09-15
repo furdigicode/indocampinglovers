@@ -10,46 +10,21 @@ function photoUrl(path:string){return createPublicSupabaseClient().storage.from(
 function mapCampground(row:DbCampground):Campground{const prices=[...(row.campground_prices??[])].sort((a,b)=>Number(a.amount_idr)-Number(b.amount_idr)||a.sort_order-b.sort_order);const price=prices[0];const photos=[...(row.campground_photos??[])].sort((a,b)=>Number(b.is_cover)-Number(a.is_cover)||a.sort_order-b.sort_order);const photo=photos[0];const verificationStatus:VerificationStatus=row.verification_status==="unverified"?"needs_update":row.verification_status;return{id:row.id,slug:row.slug,name:row.name,shortDescription:row.short_description??"Informasi campground sedang dilengkapi oleh IndoCampingLovers.",province:one(row.provinces)?.name??"Indonesia",regency:one(row.regencies)?.name??"",district:row.district??undefined,address:row.address,latitude:Number(row.latitude),longitude:Number(row.longitude),elevationM:row.elevation_m??undefined,types:(row.campground_type_relations??[]).map(x=>one(x.campground_types)?.name).filter((x):x is string=>Boolean(x)),priceFrom:price?Number(price.amount_idr):0,priceUnit:price?.unit??"kunjungan",facilities:(row.campground_facilities??[]).filter(x=>x.is_available).map(x=>one(x.facilities)?.name).filter((x):x is string=>Boolean(x)),access:(row.campground_access??[]).filter(x=>x.is_accessible).map(x=>x.vehicle_type),suitableFor:(row.campground_suitable_for??[]).map(x=>x.label),image:photo?photoUrl(photo.storage_path):FALLBACK_IMAGE,verificationStatus,lastVerifiedAt:(row.last_verified_at??new Date(0).toISOString()).slice(0,10),featured:row.featured}}
 
 type SearchMatch={campground_id:string;total_count:number|string};
-async function searchDirectory(supabase:ReturnType<typeof createPublicSupabaseClient>,query:CampgroundDirectoryQuery,page:number){return supabase.rpc("search_campgrounds",{p_q:query.q??null,p_province:query.province??null,p_regency:query.regency??null,p_types:query.types,p_facilities:query.facilities,p_access:query.access,p_min_price:query.minPrice??null,p_max_price:query.maxPrice??null,p_sort:query.sort,p_limit:query.pageSize,p_offset:(page-1)*query.pageSize});}
+async function searchDirectory(supabase:ReturnType<typeof createPublicSupabaseClient>,query:CampgroundDirectoryQuery,page:number,pageSize=query.pageSize){return supabase.rpc("search_campgrounds",{p_q:query.q??null,p_province:query.province??null,p_regency:query.regency??null,p_types:query.types,p_facilities:query.facilities,p_access:query.access,p_min_price:query.minPrice??null,p_max_price:query.maxPrice??null,p_sort:query.sort,p_limit:pageSize,p_offset:(page-1)*pageSize});}
+async function loadCampgroundsByIds(supabase:ReturnType<typeof createPublicSupabaseClient>,ids:string[]){if(!ids.length)return[];const{data,error}=await supabase.from("campgrounds").select(DIRECTORY_SELECT).in("id",ids);if(error)throw new Error(`Unable to load campground directory: ${error.message}`);const byId=new Map(((data??[])as unknown as DbCampground[]).map(row=>[row.id,mapCampground(row)]));return ids.map(id=>byId.get(id)).filter((x):x is Campground=>Boolean(x));}
 
-export async function getCampgroundDirectory(query:CampgroundDirectoryQuery):Promise<CampgroundDirectoryResult<Campground>>{
-  const supabase=createPublicSupabaseClient();
-  let page=query.page;
-  let {data:matches,error:matchError}=await searchDirectory(supabase,query,page);
-  if(matchError)throw new Error(`Unable to search campground directory: ${matchError.message}`);
-  let rows=(matches??[]) as SearchMatch[];
+export async function getCampgroundDirectory(query:CampgroundDirectoryQuery):Promise<CampgroundDirectoryResult<Campground>>{const supabase=createPublicSupabaseClient();let page=query.page;let{data:matches,error:matchError}=await searchDirectory(supabase,query,page);if(matchError)throw new Error(`Unable to search campground directory: ${matchError.message}`);let rows=(matches??[])as SearchMatch[];if(!rows.length&&page>1){const{data:firstMatches,error:firstError}=await searchDirectory(supabase,query,1);if(firstError)throw new Error(`Unable to search campground directory: ${firstError.message}`);const firstRows=(firstMatches??[])as SearchMatch[];const total=firstRows.length?Number(firstRows[0].total_count):0;const totalPages=Math.max(1,Math.ceil(total/query.pageSize));if(total===0)return{items:[],total:0,page:1,pageSize:query.pageSize,totalPages:1};page=Math.min(page,totalPages);if(page===1)rows=firstRows;else{const{data:lastMatches,error:lastError}=await searchDirectory(supabase,query,page);if(lastError)throw new Error(`Unable to search campground directory: ${lastError.message}`);rows=(lastMatches??[])as SearchMatch[];}}const total=rows.length?Number(rows[0].total_count):0;const totalPages=Math.max(1,Math.ceil(total/query.pageSize));if(!rows.length)return{items:[],total,page:1,pageSize:query.pageSize,totalPages:1};const ids=rows.map(x=>x.campground_id);const items=await loadCampgroundsByIds(supabase,ids);return{items,total,page,pageSize:query.pageSize,totalPages};}
 
-  // A paginated SQL result has no row from which to read count(*) when the offset is past
-  // the final page. Probe page 1 only in that edge case, then clamp to the last valid page.
-  if(!rows.length && page>1){
-    const {data:firstMatches,error:firstError}=await searchDirectory(supabase,query,1);
-    if(firstError)throw new Error(`Unable to search campground directory: ${firstError.message}`);
-    const firstRows=(firstMatches??[]) as SearchMatch[];
-    const total=firstRows.length?Number(firstRows[0].total_count):0;
-    const totalPages=Math.max(1,Math.ceil(total/query.pageSize));
-    if(total===0)return{items:[],total:0,page:1,pageSize:query.pageSize,totalPages:1};
-    page=Math.min(page,totalPages);
-    if(page===1)rows=firstRows;
-    else {
-      const {data:lastMatches,error:lastError}=await searchDirectory(supabase,query,page);
-      if(lastError)throw new Error(`Unable to search campground directory: ${lastError.message}`);
-      rows=(lastMatches??[]) as SearchMatch[];
-    }
-  }
+// M2.4 map contract: map presentation needs the complete filtered result set, not just
+// the current 24-card list page. It deliberately reuses the same database-native RPC
+// so list and map eligibility semantics cannot drift. A hard ceiling protects the
+// browser until clustering/viewport search is designed in a later milestone.
+export const DIRECTORY_MAP_RESULT_LIMIT=500;
+export type CampgroundMapResult={items:Campground[];total:number;mappableTotal:number;truncated:boolean};
+export async function getCampgroundMapResults(query:CampgroundDirectoryQuery):Promise<CampgroundMapResult>{const supabase=createPublicSupabaseClient();const{data,error}=await searchDirectory(supabase,query,1,DIRECTORY_MAP_RESULT_LIMIT);if(error)throw new Error(`Unable to search campground map: ${error.message}`);const rows=(data??[])as SearchMatch[];const total=rows.length?Number(rows[0].total_count):0;const items=(await loadCampgroundsByIds(supabase,rows.map(x=>x.campground_id))).filter(item=>Number.isFinite(item.latitude)&&Number.isFinite(item.longitude)&&item.latitude>=-90&&item.latitude<=90&&item.longitude>=-180&&item.longitude<=180);return{items,total,mappableTotal:items.length,truncated:total>DIRECTORY_MAP_RESULT_LIMIT};}
 
-  const total=rows.length?Number(rows[0].total_count):0;
-  const totalPages=Math.max(1,Math.ceil(total/query.pageSize));
-  if(!rows.length)return{items:[],total,page:1,pageSize:query.pageSize,totalPages:1};
-  const ids=rows.map(x=>x.campground_id);
-  const {data,error}=await supabase.from("campgrounds").select(DIRECTORY_SELECT).in("id",ids);
-  if(error)throw new Error(`Unable to load campground directory: ${error.message}`);
-  const byId=new Map(((data??[]) as unknown as DbCampground[]).map(row=>[row.id,mapCampground(row)]));
-  const items=ids.map(id=>byId.get(id)).filter((x):x is Campground=>Boolean(x));
-  return{items,total,page,pageSize:query.pageSize,totalPages};
-}
-
-export async function getCampgroundDirectoryFacets():Promise<CampgroundDirectoryFacets>{const supabase=createPublicSupabaseClient();const [provinces,regencies,types,facilities,access]=await Promise.all([supabase.from("provinces").select("name,slug").order("name"),supabase.from("regencies").select("name,slug,provinces(slug)").order("name"),supabase.from("campground_types").select("name,slug").order("name"),supabase.from("facilities").select("name,slug").order("sort_order").order("name"),supabase.from("campground_access").select("vehicle_type").eq("is_accessible",true)]);const error=provinces.error??regencies.error??types.error??facilities.error??access.error;if(error)throw new Error(`Unable to load directory facets: ${error.message}`);return{provinces:(provinces.data??[]).map(x=>({value:x.slug,label:x.name})),regencies:(regencies.data??[]).map((x:any)=>({value:x.slug,label:x.name,province:one(x.provinces)?.slug??""})),types:(types.data??[]).map(x=>({value:x.slug,label:x.name})),facilities:(facilities.data??[]).map(x=>({value:x.slug,label:x.name})),access:[...new Set((access.data??[]).map(x=>x.vehicle_type))].sort().map(value=>({value,label:value}))}}
-export async function getPublishedCampgrounds():Promise<Campground[]>{const result=await getCampgroundDirectory({types:[],facilities:[],access:[],sort:"recommended",page:1,pageSize:100});return result.items}
+export async function getCampgroundDirectoryFacets():Promise<CampgroundDirectoryFacets>{const supabase=createPublicSupabaseClient();const[provinces,regencies,types,facilities,access]=await Promise.all([supabase.from("provinces").select("name,slug").order("name"),supabase.from("regencies").select("name,slug,provinces(slug)").order("name"),supabase.from("campground_types").select("name,slug").order("name"),supabase.from("facilities").select("name,slug").order("sort_order").order("name"),supabase.from("campground_access").select("vehicle_type").eq("is_accessible",true)]);const error=provinces.error??regencies.error??types.error??facilities.error??access.error;if(error)throw new Error(`Unable to load directory facets: ${error.message}`);return{provinces:(provinces.data??[]).map(x=>({value:x.slug,label:x.name})),regencies:(regencies.data??[]).map((x:any)=>({value:x.slug,label:x.name,province:one(x.provinces)?.slug??""})),types:(types.data??[]).map(x=>({value:x.slug,label:x.name})),facilities:(facilities.data??[]).map(x=>({value:x.slug,label:x.name})),access:[...new Set((access.data??[]).map(x=>x.vehicle_type))].sort().map(value=>({value,label:value}))}}
+export async function getPublishedCampgrounds():Promise<Campground[]>{const result=await getCampgroundDirectory({types:[],facilities:[],access:[],sort:"recommended",view:"list",page:1,pageSize:100});return result.items}
 export async function getFeaturedCampgrounds(limit=3):Promise<Campground[]>{const supabase=createPublicSupabaseClient();const{data,error}=await supabase.from("campgrounds").select(DIRECTORY_SELECT).eq("featured",true).order("name").limit(limit);if(error)throw new Error(`Unable to load featured campgrounds: ${error.message}`);return((data??[])as unknown as DbCampground[]).map(mapCampground)}
 export async function getCampgroundBySlug(slug:string):Promise<Campground|null>{const supabase=createPublicSupabaseClient();const{data,error}=await supabase.from("campgrounds").select(DIRECTORY_SELECT).eq("slug",slug).maybeSingle();if(error)throw new Error(`Unable to load campground: ${error.message}`);return data?mapCampground(data as unknown as DbCampground):null}
 export async function getRelatedCampgrounds(campground:Campground,limit=3):Promise<Campground[]>{const all=await getPublishedCampgrounds();return all.filter(x=>x.slug!==campground.slug&&(x.province===campground.province||x.types.some(t=>campground.types.includes(t)))).slice(0,limit)}
