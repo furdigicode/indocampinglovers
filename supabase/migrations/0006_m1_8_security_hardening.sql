@@ -4,7 +4,15 @@
 
 -- Trigger helper is an internal database implementation detail. Browser roles
 -- do not need permission to invoke it directly.
+-- PostgreSQL function EXECUTE can be inherited through role membership, so
+-- revoke from PUBLIC/browser roles and Supabase's authenticated role chain.
 revoke execute on function public.set_updated_at() from public, anon, authenticated;
+do $$
+begin
+  if exists (select 1 from pg_roles where rolname = 'authenticator') then
+    execute 'revoke execute on function public.set_updated_at() from authenticator';
+  end if;
+end $$;
 
 -- Protect FUTURE public-schema objects from Supabase/Postgres broad defaults.
 -- Explicit grants in reviewed migrations remain the only browser surface.
