@@ -8,6 +8,7 @@ import { getCampgroundDirectory, getCampgroundDirectoryFacets } from "@/lib/camp
 
 export const dynamic = "force-dynamic";
 type CampingPageProps = { searchParams: Promise<DirectorySearchParams> };
+type ActiveFilterChip = { key: string; label: string; value?: string };
 
 function hrefWithout(params: DirectorySearchParams, key: string, value?: string) {
   const search = new URLSearchParams();
@@ -38,7 +39,7 @@ export default async function CampingPage({ searchParams }: CampingPageProps) {
   const query = parseCampgroundDirectoryQuery(raw);
   const [result, facets] = await Promise.all([getCampgroundDirectory(query), getCampgroundDirectoryFacets()]);
   const labels = new Map([...facets.provinces, ...facets.regencies, ...facets.types, ...facets.facilities, ...facets.access].map((item) => [item.value, item.label]));
-  const chips = [
+  const chips: ActiveFilterChip[] = [
     ...(query.q ? [{ key: "q", label: `“${query.q}”` }] : []),
     ...(query.province ? [{ key: "province", label: labels.get(query.province) ?? query.province }] : []),
     ...(query.regency ? [{ key: "regency", label: labels.get(query.regency) ?? query.regency }] : []),
