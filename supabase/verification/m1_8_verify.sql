@@ -29,10 +29,19 @@ with icl_tables(name) as (values
    and not has_table_privilege('authenticated','public.campground_submissions','SELECT')
    and not has_table_privilege('authenticated','public.campground_update_submissions','SELECT')
  union all
- select 60, 'set_updated_at cannot be called by browser/public roles',
-   not has_function_privilege('anon','public.set_updated_at()','EXECUTE')
-   and not has_function_privilege('authenticated','public.set_updated_at()','EXECUTE')
-   and not has_function_privilege('public','public.set_updated_at()','EXECUTE')
+ select 60, 'set_updated_at has no EXECUTE grant for PUBLIC/anon/authenticated',
+   not exists (
+     select 1
+     from pg_proc p
+     join pg_namespace n on n.oid = p.pronamespace
+     cross join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) acl
+     left join pg_roles grantee on grantee.oid = acl.grantee
+     where n.nspname = 'public'
+       and p.proname = 'set_updated_at'
+       and pg_get_function_identity_arguments(p.oid) = ''
+       and acl.privilege_type = 'EXECUTE'
+       and (acl.grantee = 0 or grantee.rolname in ('anon','authenticated'))
+   )
  union all
  select 70, 'published campground RLS policy exists',
    exists(select 1 from pg_policies where schemaname='public' and tablename='campgrounds' and policyname='public read published campgrounds' and cmd='SELECT')
