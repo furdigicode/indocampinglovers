@@ -1,21 +1,24 @@
 import Link from "next/link";
-import { TentTree } from "lucide-react";
+import { Menu, Plus, TentTree } from "lucide-react";
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-black/5 bg-[#fbfaf6]/95">
-      <div className="container-icl flex h-20 items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 font-bold">
-          <span className="grid size-10 place-items-center rounded-xl bg-forest-800 text-white"><TentTree size={21} /></span>
-          <span>IndoCampingLovers</span>
+    <header className="sticky top-0 z-50 border-b border-black/5 bg-[#fbfaf7]/90 backdrop-blur-xl">
+      <div className="container-icl flex h-16 items-center justify-between md:h-20">
+        <Link href="/" className="icl-focus flex items-center gap-2.5 rounded-xl font-extrabold tracking-tight">
+          <span className="grid size-9 place-items-center rounded-xl bg-forest-800 text-white md:size-10"><TentTree size={20} /></span>
+          <span className="text-[15px] md:text-base">IndoCampingLovers</span>
         </Link>
-        <nav className="hidden items-center gap-7 text-sm font-medium md:flex">
-          <Link href="/camping">Jelajah Camping</Link>
-          <Link href="/camping">Destinasi</Link>
-          <Link href="#inspirasi">Inspirasi</Link>
-          <Link href="#tentang">Tentang ICL</Link>
+        <nav className="hidden items-center gap-7 text-sm font-semibold text-black/70 lg:flex" aria-label="Navigasi utama">
+          <Link className="transition hover:text-forest-700" href="/camping">Jelajah Camping</Link>
+          <Link className="transition hover:text-forest-700" href="/camping">Destinasi</Link>
+          <Link className="transition hover:text-forest-700" href="/#inspirasi">Inspirasi</Link>
+          <Link className="transition hover:text-forest-700" href="/#tentang">Tentang ICL</Link>
         </nav>
-        <Link href="/tambah-tempat" className="rounded-full bg-forest-800 px-5 py-2.5 text-sm font-semibold text-white">+ Tambah Tempat</Link>
+        <div className="flex items-center gap-2">
+          <Link href="/tambah-tempat" className="icl-button-primary icl-focus hidden px-5 py-2.5 text-sm sm:inline-flex"><Plus size={16}/>Tambah Tempat</Link>
+          <Link href="/camping" aria-label="Buka jelajah camping" className="icl-focus grid size-10 place-items-center rounded-full border border-black/10 bg-white lg:hidden"><Menu size={19}/></Link>
+        </div>
       </div>
     </header>
   );
