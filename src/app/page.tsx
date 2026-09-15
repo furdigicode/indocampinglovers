@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, Car, MapPin, Mountain, Search, TentTree, Users } from "lucide-react";
+import { ArrowRight, Car, Mountain, Search, TentTree, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
+import { CampgroundCard } from "@/components/campground-card";
+import { featuredCampgrounds } from "@/data/campgrounds";
 
 const categories = [
   { name: "Family Camping", icon: Users },
@@ -25,9 +27,7 @@ export default function HomePage() {
           </form>
           <div className="mt-10 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
             {categories.map(({ name, icon: Icon }) => (
-              <Link key={name} href={`/camping?type=${encodeURIComponent(name)}`} className="flex items-center justify-center gap-3 rounded-2xl border border-black/5 bg-white/70 p-5 font-semibold transition hover:bg-white">
-                <Icon size={20} className="text-forest-700" />{name}
-              </Link>
+              <Link key={name} href={`/camping?type=${encodeURIComponent(name)}`} className="flex items-center justify-center gap-3 rounded-2xl border border-black/5 bg-white/70 p-5 font-semibold transition hover:bg-white"><Icon size={20} className="text-forest-700" />{name}</Link>
             ))}
           </div>
         </div>
@@ -36,17 +36,10 @@ export default function HomePage() {
       <section className="py-20">
         <div className="container-icl">
           <div className="flex items-end justify-between gap-6">
-            <div><p className="font-semibold text-forest-700">Mulai menjelajah</p><h2 className="mt-2 text-3xl font-bold">Camping populer</h2></div>
-            <Link href="/camping" className="flex items-center gap-2 font-semibold text-forest-700">Lihat semua <ArrowRight size={18} /></Link>
+            <div><p className="font-semibold text-forest-700">Pilihan untuk dijelajahi</p><h2 className="mt-2 text-3xl font-bold">Camping pilihan ICL</h2><p className="mt-3 text-sm text-black/50">Data pada tahap development ini adalah seed/demo dan belum merupakan listing publik terverifikasi.</p></div>
+            <Link href="/camping" className="hidden items-center gap-2 font-semibold text-forest-700 sm:flex">Lihat semua <ArrowRight size={18} /></Link>
           </div>
-          <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {["Bandung, Jawa Barat", "Bogor, Jawa Barat", "Dieng, Jawa Tengah"].map((location) => (
-              <div key={location} className="overflow-hidden rounded-3xl border border-black/5 bg-white shadow-sm">
-                <div className="grid aspect-[4/3] place-items-center bg-forest-100 text-forest-700"><TentTree size={42} /></div>
-                <div className="p-6"><div className="flex items-center gap-2 text-sm text-black/50"><MapPin size={16} />{location}</div><h3 className="mt-3 text-xl font-bold">Contoh Campground</h3><p className="mt-2 text-sm leading-6 text-black/55">Data contoh untuk fondasi UI. Data campground asli akan masuk pada milestone database.</p></div>
-              </div>
-            ))}
-          </div>
+          <div className="mt-8 grid gap-5 md:grid-cols-3">{featuredCampgrounds.map((campground) => <CampgroundCard key={campground.id} campground={campground} />)}</div>
         </div>
       </section>
 
