@@ -23,7 +23,7 @@ type DbCampground = {
   campground_access: { vehicle_type: string; is_accessible: boolean }[] | null;
   campground_suitable_for: { label: string }[] | null;
   campground_prices: { amount_idr: number | string; unit: string | null; sort_order: number }[] | null;
-  campground_photos: { storage_path: string; source_url: string | null; is_cover: boolean; sort_order: number }[] | null;
+  campground_photos: { storage_path: string; is_cover: boolean; sort_order: number }[] | null;
 };
 
 const DIRECTORY_SELECT = `
@@ -35,15 +35,14 @@ const DIRECTORY_SELECT = `
   campground_access(vehicle_type, is_accessible),
   campground_suitable_for(label),
   campground_prices(amount_idr, unit, sort_order),
-  campground_photos(storage_path, source_url, is_cover, sort_order)
+  campground_photos(storage_path, is_cover, sort_order)
 `;
 
 function one<T>(value: T | T[] | null): T | null {
   return Array.isArray(value) ? value[0] ?? null : value;
 }
 
-function photoUrl(storagePath: string, sourceUrl: string | null) {
-  if (sourceUrl) return sourceUrl;
+function photoUrl(storagePath: string) {
   return createPublicSupabaseClient().storage.from("campground-photos").getPublicUrl(storagePath).data.publicUrl;
 }
 
@@ -72,7 +71,7 @@ function mapCampground(row: DbCampground): Campground {
     facilities: (row.campground_facilities ?? []).filter((item) => item.is_available).map((item) => one(item.facilities)?.name).filter((name): name is string => Boolean(name)),
     access: (row.campground_access ?? []).filter((item) => item.is_accessible).map((item) => item.vehicle_type),
     suitableFor: (row.campground_suitable_for ?? []).map((item) => item.label),
-    image: photo ? photoUrl(photo.storage_path, photo.source_url) : FALLBACK_IMAGE,
+    image: photo ? photoUrl(photo.storage_path) : FALLBACK_IMAGE,
     verificationStatus,
     lastVerifiedAt: (row.last_verified_at ?? new Date(0).toISOString()).slice(0, 10),
     featured: row.featured
