@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Car, Mountain, Search, TentTree, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { CampgroundCard } from "@/components/campground-card";
-import { featuredCampgrounds } from "@/data/campgrounds";
+import { getFeaturedCampgrounds } from "@/lib/campgrounds/repository";
 
 const categories = [
   { name: "Family Camping", icon: Users },
@@ -11,7 +11,11 @@ const categories = [
   { name: "Glamping", icon: TentTree }
 ];
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const featuredCampgrounds = await getFeaturedCampgrounds(3);
+
   return (
     <main>
       <SiteHeader />
@@ -36,10 +40,10 @@ export default function HomePage() {
       <section className="py-20">
         <div className="container-icl">
           <div className="flex items-end justify-between gap-6">
-            <div><p className="font-semibold text-forest-700">Pilihan untuk dijelajahi</p><h2 className="mt-2 text-3xl font-bold">Camping pilihan ICL</h2><p className="mt-3 text-sm text-black/50">Data pada tahap development ini adalah seed/demo dan belum merupakan listing publik terverifikasi.</p></div>
+            <div><p className="font-semibold text-forest-700">Pilihan untuk dijelajahi</p><h2 className="mt-2 text-3xl font-bold">Camping pilihan ICL</h2><p className="mt-3 text-sm text-black/50">Listing di bawah berasal dari database publik IndoCampingLovers.</p></div>
             <Link href="/camping" className="hidden items-center gap-2 font-semibold text-forest-700 sm:flex">Lihat semua <ArrowRight size={18} /></Link>
           </div>
-          <div className="mt-8 grid gap-5 md:grid-cols-3">{featuredCampgrounds.map((campground) => <CampgroundCard key={campground.id} campground={campground} />)}</div>
+          {featuredCampgrounds.length > 0 ? <div className="mt-8 grid gap-5 md:grid-cols-3">{featuredCampgrounds.map((campground) => <CampgroundCard key={campground.id} campground={campground} />)}</div> : <div className="mt-8 rounded-3xl border border-black/5 bg-white p-8 text-sm leading-6 text-black/55">Belum ada campground pilihan yang dipublikasikan. Data akan muncul otomatis setelah listing berstatus published dan featured tersedia.</div>}
         </div>
       </section>
 
