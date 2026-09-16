@@ -2,9 +2,11 @@
 
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useEffect, useRef } from "react";
-import type { Campground } from "@/types/campground";
+import type { Campground, VerificationStatus } from "@/types/campground";
 
 const INDONESIA_CENTER: [number, number] = [117.5, -2.5];
+const MARKER_COLOR = "#174d35";
+const MARKER_SELECTED_COLOR = "#b5d334";
 
 const rasterStyle = {
   version: 8 as const,
@@ -19,6 +21,53 @@ const rasterStyle = {
   layers: [{ id: "osm", type: "raster" as const, source: "osm" }]
 };
 
+const verificationLabels: Record<VerificationStatus, string> = {
+  verified: "Terverifikasi",
+  community_updated: "Diperbarui komunitas",
+  needs_update: "Perlu diperbarui"
+};
+
+function formatPrice(campground: Campground) {
+  if (campground.priceFrom <= 0) return "Hubungi pengelola";
+  return `Mulai Rp${campground.priceFrom.toLocaleString("id-ID")}/${campground.priceUnit}`;
+}
+
+function createPopupContent(campground: Campground) {
+  const root = document.createElement("div");
+  root.className = "icl-map-popup";
+
+  const meta = document.createElement("p");
+  meta.className = "icl-map-popup-meta";
+  meta.textContent = [campground.regency, campground.province].filter(Boolean).join(", ");
+
+  const title = document.createElement("h3");
+  title.className = "icl-map-popup-title";
+  title.textContent = campground.name;
+
+  const chips = document.createElement("div");
+  chips.className = "icl-map-popup-chips";
+  if (campground.types[0]) {
+    const type = document.createElement("span");
+    type.textContent = campground.types[0];
+    chips.appendChild(type);
+  }
+  const verification = document.createElement("span");
+  verification.textContent = verificationLabels[campground.verificationStatus];
+  chips.appendChild(verification);
+
+  const price = document.createElement("p");
+  price.className = "icl-map-popup-price";
+  price.textContent = formatPrice(campground);
+
+  const detail = document.createElement("a");
+  detail.className = "icl-map-popup-link";
+  detail.href = `/camping/${encodeURIComponent(campground.slug)}`;
+  detail.textContent = "Lihat detail →";
+
+  root.append(meta, title, chips, price, detail);
+  return root;
+}
+
 export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -26,6 +75,8 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
     if (!containerRef.current || campgrounds.length === 0) return;
     let disposed = false;
     let map: import("maplibre-gl").Map | undefined;
+    let activeMarker: import("maplibre-gl").Marker | undefined;
+    let activePopup: import("maplibre-gl").Popup | undefined;
     const markers: import("maplibre-gl").Marker[] = [];
 
     async function mountMap() {
@@ -41,11 +92,51 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
       });
       map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
 
+      const resetActiveMarker = () => {
+        if (activeMarker) activeMarker.setColor(MARKER_COLOR);
+        activeMarker = undefined;
+        activePopup = undefined;
+      };
+
       const bounds = new maplibre.LngLatBounds();
       for (const campground of campgrounds) {
         const lngLat: [number, number] = [campground.longitude, campground.latitude];
         bounds.extend(lngLat);
-        const marker = new maplibre.Marker({ color: "#174d35" }).setLngLat(lngLat).addTo(map);
+        const marker = new maplibre.Marker({ color: MARKER_COLOR }).setLngLat(lngLat).addTo(map);
+        const element = marker.getElement();
+        element.setAttribute("role", "button");
+        element.setAttribute("tabindex", "0");
+        element.setAttribute("aria-label", `Lihat ${campground.name}`);
+
+        const openPreview = () => {
+          if (!map) return;
+          activePopup?.remove();
+          if (activeMarker && activeMarker !== marker) activeMarker.setColor(MARKER_COLOR);
+          marker.setColor(MARKER_SELECTED_COLOR);
+          activeMarker = marker;
+
+          const popup = new maplibre.Popup({
+            closeButton: true,
+            closeOnClick: true,
+            maxWidth: "300px",
+            offset: 28
+          })
+            .setLngLat(lngLat)
+            .setDOMContent(createPopupContent(campground))
+            .addTo(map);
+          activePopup = popup;
+          popup.once("close", () => {
+            if (activePopup === popup) resetActiveMarker();
+          });
+        };
+
+        element.addEventListener("click", openPreview);
+        element.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openPreview();
+          }
+        });
         markers.push(marker);
       }
 
@@ -62,6 +153,7 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
     void mountMap();
     return () => {
       disposed = true;
+      activePopup?.remove();
       markers.forEach((marker) => marker.remove());
       map?.remove();
     };
