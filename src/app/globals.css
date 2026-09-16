@@ -57,7 +57,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .icl-map-popup-price { margin: 12px 0 0; font-size: 13px; font-weight: 800; }
 .icl-map-popup-link { display: flex; align-items: center; justify-content: center; margin-top: 13px; border-radius: 999px; background: var(--icl-forest); padding: 9px 13px; color: #fff; font-size: 12px; font-weight: 800; }
 .icl-map-popup-link:hover { background: var(--icl-forest-hover); }
+.maplibregl-marker[role="button"] { transition: filter .15s ease, transform .15s ease; }
 .maplibregl-marker[role="button"]:focus-visible { outline: 3px solid rgba(23,63,43,.35); outline-offset: 3px; border-radius: 999px; }
+.maplibregl-marker.icl-map-marker-selected { filter: brightness(1.45) saturate(.8) drop-shadow(0 3px 4px rgba(21,37,26,.3)); z-index: 2; }
 
 @media (max-width: 640px) {
   .container-icl { width: min(100% - 24px, 1180px); }
