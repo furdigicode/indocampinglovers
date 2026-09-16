@@ -120,7 +120,7 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
 
           const popup = new maplibre.Popup({
             closeButton: true,
-            closeOnClick: true,
+            closeOnClick: false,
             maxWidth: "300px",
             offset: 28
           })
@@ -133,10 +133,14 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
           });
         };
 
-        element.addEventListener("click", openPreview);
+        element.addEventListener("click", (event) => {
+          event.stopPropagation();
+          openPreview();
+        });
         element.addEventListener("keydown", (event) => {
           if (event.key === "Enter" || event.key === " ") {
             event.preventDefault();
+            event.stopPropagation();
             openPreview();
           }
         });
