@@ -6,7 +6,6 @@ import type { Campground, VerificationStatus } from "@/types/campground";
 
 const INDONESIA_CENTER: [number, number] = [117.5, -2.5];
 const MARKER_COLOR = "#174d35";
-const MARKER_SELECTED_COLOR = "#b5d334";
 
 const rasterStyle = {
   version: 8 as const,
@@ -68,6 +67,10 @@ function createPopupContent(campground: Campground) {
   return root;
 }
 
+function setMarkerSelected(marker: import("maplibre-gl").Marker, selected: boolean) {
+  marker.getElement().classList.toggle("icl-map-marker-selected", selected);
+}
+
 export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -93,7 +96,7 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
       map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
 
       const resetActiveMarker = () => {
-        if (activeMarker) activeMarker.setColor(MARKER_COLOR);
+        if (activeMarker) setMarkerSelected(activeMarker, false);
         activeMarker = undefined;
         activePopup = undefined;
       };
@@ -111,8 +114,8 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
         const openPreview = () => {
           if (!map) return;
           activePopup?.remove();
-          if (activeMarker && activeMarker !== marker) activeMarker.setColor(MARKER_COLOR);
-          marker.setColor(MARKER_SELECTED_COLOR);
+          if (activeMarker && activeMarker !== marker) setMarkerSelected(activeMarker, false);
+          setMarkerSelected(marker, true);
           activeMarker = marker;
 
           const popup = new maplibre.Popup({
