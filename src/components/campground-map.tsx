@@ -37,7 +37,7 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
         style: rasterStyle,
         center: INDONESIA_CENTER,
         zoom: 4,
-        attributionControl: true
+        attributionControl: { compact: true }
       });
       map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
 
