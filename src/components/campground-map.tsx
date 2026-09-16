@@ -34,15 +34,12 @@ function formatPrice(campground: Campground) {
 function createPopupContent(campground: Campground) {
   const root = document.createElement("div");
   root.className = "icl-map-popup";
-
   const meta = document.createElement("p");
   meta.className = "icl-map-popup-meta";
   meta.textContent = [campground.regency, campground.province].filter(Boolean).join(", ");
-
   const title = document.createElement("h3");
   title.className = "icl-map-popup-title";
   title.textContent = campground.name;
-
   const chips = document.createElement("div");
   chips.className = "icl-map-popup-chips";
   if (campground.types[0]) {
@@ -53,16 +50,13 @@ function createPopupContent(campground: Campground) {
   const verification = document.createElement("span");
   verification.textContent = verificationLabels[campground.verificationStatus];
   chips.appendChild(verification);
-
   const price = document.createElement("p");
   price.className = "icl-map-popup-price";
   price.textContent = formatPrice(campground);
-
   const detail = document.createElement("a");
   detail.className = "icl-map-popup-link";
   detail.href = `/camping/${encodeURIComponent(campground.slug)}`;
   detail.textContent = "Lihat detail →";
-
   root.append(meta, title, chips, price, detail);
   return root;
 }
@@ -85,7 +79,6 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
     async function mountMap() {
       const maplibre = await import("maplibre-gl");
       if (disposed || !containerRef.current) return;
-
       map = new maplibre.Map({
         container: containerRef.current,
         style: rasterStyle,
@@ -100,6 +93,7 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
         activeMarker = undefined;
         activePopup = undefined;
       };
+      map.on("click", resetActiveMarker);
 
       const bounds = new maplibre.LngLatBounds();
       for (const campground of campgrounds) {
@@ -117,43 +111,27 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
           if (activeMarker && activeMarker !== marker) setMarkerSelected(activeMarker, false);
           setMarkerSelected(marker, true);
           activeMarker = marker;
-
-          const popup = new maplibre.Popup({
-            closeButton: true,
-            closeOnClick: false,
-            maxWidth: "300px",
-            offset: 28
-          })
+          const popup = new maplibre.Popup({ closeButton: true, closeOnClick: false, maxWidth: "300px", offset: 28 })
             .setLngLat(lngLat)
             .setDOMContent(createPopupContent(campground))
             .addTo(map);
           activePopup = popup;
-          popup.once("close", () => {
-            if (activePopup === popup) resetActiveMarker();
-          });
+          popup.once("close", () => { if (activePopup === popup) resetActiveMarker(); });
         };
 
-        element.addEventListener("click", (event) => {
-          event.stopPropagation();
-          openPreview();
-        });
+        element.addEventListener("click", (event) => { event.stopPropagation(); openPreview(); });
         element.addEventListener("keydown", (event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            event.stopPropagation();
-            openPreview();
-          }
+          if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.stopPropagation(); openPreview(); }
+          if (event.key === "Escape") activePopup?.remove();
         });
         markers.push(marker);
       }
 
       map.once("load", () => {
         if (!map || disposed) return;
-        if (campgrounds.length === 1) {
-          map.flyTo({ center: [campgrounds[0].longitude, campgrounds[0].latitude], zoom: 12, duration: 0 });
-        } else if (!bounds.isEmpty()) {
-          map.fitBounds(bounds, { padding: 56, maxZoom: 12, duration: 0 });
-        }
+        if (campgrounds.length === 1) map.jumpTo({ center: [campgrounds[0].longitude, campgrounds[0].latitude], zoom: 12 });
+        else if (!bounds.isEmpty()) map.fitBounds(bounds, { padding: 56, maxZoom: 12, duration: 0 });
+        map.resize();
       });
     }
 
@@ -170,5 +148,5 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
     return <div className="mt-8 rounded-3xl border border-black/10 bg-white p-8 text-center md:p-12"><h2 className="text-xl font-extrabold">Belum ada lokasi yang bisa ditampilkan di peta</h2><p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-black/55">Hasil pencarian ini belum memiliki koordinat peta yang valid. Coba ubah atau reset filter.</p></div>;
   }
 
-  return <div className="mt-8 overflow-hidden rounded-3xl border border-black/10 bg-white shadow-sm"><div ref={containerRef} className="h-[520px] w-full md:h-[620px]" aria-label={`Peta ${campgrounds.length} campground`}/></div>;
+  return <div className="mt-8 overflow-hidden rounded-3xl border border-black/10 bg-white shadow-sm"><div ref={containerRef} className="h-[62vh] min-h-[420px] max-h-[620px] w-full md:h-[620px]" role="region" aria-label={`Peta ${campgrounds.length} campground`}/></div>;
 }
