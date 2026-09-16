@@ -44,6 +44,22 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .icl-button-secondary:hover { border-color:#c9cec9; background:#fafaf7; }
 .icl-focus:focus-visible { outline:3px solid rgba(55,99,70,.25); outline-offset:3px; }
 
+/* MapLibre campground preview. DOM is constructed with textContent in the client
+   component so database strings are never interpolated into popup HTML. */
+.maplibregl-popup-content { border-radius: 18px; padding: 0; box-shadow: var(--icl-shadow-md); overflow: hidden; }
+.maplibregl-popup-close-button { width: 32px; height: 32px; border-radius: 999px; right: 5px; top: 5px; color: var(--icl-muted); font-size: 20px; line-height: 28px; }
+.maplibregl-popup-close-button:hover { background: var(--icl-sand); color: var(--icl-ink); }
+.icl-map-popup { min-width: 220px; max-width: 270px; padding: 18px; color: var(--icl-ink); }
+.icl-map-popup-meta { margin: 0; padding-right: 22px; color: var(--icl-muted); font-size: 11px; font-weight: 700; line-height: 1.4; }
+.icl-map-popup-title { margin: 5px 0 0; font-size: 17px; font-weight: 800; line-height: 1.25; }
+.icl-map-popup-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+.icl-map-popup-chips span { border-radius: 999px; background: var(--icl-sand); padding: 5px 8px; color: var(--icl-leaf); font-size: 10px; font-weight: 700; line-height: 1; }
+.icl-map-popup-price { margin: 12px 0 0; font-size: 13px; font-weight: 800; }
+.icl-map-popup-link { display: flex; align-items: center; justify-content: center; margin-top: 13px; border-radius: 999px; background: var(--icl-forest); padding: 9px 13px; color: #fff; font-size: 12px; font-weight: 800; }
+.icl-map-popup-link:hover { background: var(--icl-forest-hover); }
+.maplibregl-marker[role="button"]:focus-visible { outline: 3px solid rgba(23,63,43,.35); outline-offset: 3px; border-radius: 999px; }
+
 @media (max-width: 640px) {
   .container-icl { width: min(100% - 24px, 1180px); }
+  .icl-map-popup { min-width: 200px; max-width: 235px; padding: 15px; }
 }
