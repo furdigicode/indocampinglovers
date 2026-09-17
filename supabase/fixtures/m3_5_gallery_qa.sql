@@ -24,8 +24,6 @@ begin
     raise exception 'Run supabase/fixtures/m3_detail_qa.sql first: campground icl-qa-m3-detail not found';
   end if;
 
-  -- QA campground only: remove previous photo metadata, including any older
-  -- approved cover created by an earlier M3 fixture run.
   delete from public.campground_photos
   where campground_id = v_campground;
 
@@ -33,38 +31,38 @@ begin
     (campground_id, storage_path, alt_text, caption, credit_name, source_url, is_cover, status, sort_order)
   values
     (v_campground, 'qa-external/m3-qa-cover',
-      'Tenda camping di punggung gunung',
+      'Tenda camping di alam terbuka',
       'Foto QA untuk menguji cover dan galeri campground.',
-      'Mohit Sharma / Unsplash',
-      'https://images.unsplash.com/photo-cQqSizbbDxU?auto=format&fit=crop&w=1600&q=85',
+      'Unsplash QA',
+      'https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=1600&q=85',
       true, 'approved', 10),
 
     (v_campground, 'qa-external/m3-qa-02',
-      'Tenda di area hijau',
+      'Area camping di alam',
       'Foto QA untuk menguji susunan galeri.',
-      'Alexey Demidov / Unsplash',
-      'https://images.unsplash.com/photo-MgyGdPopV-c?auto=format&fit=crop&w=1400&q=85',
+      'Unsplash QA',
+      'https://images.unsplash.com/photo-1475483768296-6163e08872a1?auto=format&fit=crop&w=1400&q=85',
       false, 'approved', 20),
 
     (v_campground, 'qa-external/m3-qa-03',
-      'Tenda di tengah hutan',
+      'Tenda di kawasan pegunungan',
       'Foto QA untuk menguji lightbox campground.',
-      'Marco Bicca / Unsplash',
-      'https://images.unsplash.com/photo-T3rly2lrc4w?auto=format&fit=crop&w=1400&q=85',
+      'Unsplash QA',
+      'https://images.unsplash.com/photo-1504851149312-7a075b496cc7?auto=format&fit=crop&w=1400&q=85',
       false, 'approved', 30),
 
     (v_campground, 'qa-external/m3-qa-04',
-      'Area camping dengan meja dan kursi outdoor',
+      'Suasana campground di alam terbuka',
       'Foto QA fasilitas dan suasana camping.',
-      'Regi Munandar / Unsplash',
-      'https://images.unsplash.com/photo-ZSNSjyz0eps?auto=format&fit=crop&w=1400&q=85',
+      'Unsplash QA',
+      'https://images.unsplash.com/photo-1478131143081-80f7f84ca84d?auto=format&fit=crop&w=1400&q=85',
       false, 'approved', 40),
 
     (v_campground, 'qa-external/m3-qa-05',
-      'Tenda menyala pada malam hari',
+      'Tenda camping pada malam hari',
       'Foto QA untuk menguji navigasi galeri sampai foto terakhir.',
-      'Jimmy Liu / Unsplash',
-      'https://images.unsplash.com/photo-und_28PbwAA?auto=format&fit=crop&w=1400&q=85',
+      'Unsplash QA',
+      'https://images.unsplash.com/photo-1496545672447-f699b503d270?auto=format&fit=crop&w=1400&q=85',
       false, 'approved', 50);
 end $$;
 
