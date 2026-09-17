@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CalendarCheck, Car, Check, CheckCircle2, MapPin, Mountain, Navigation, TentTree } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Car, Check, CheckCircle2, CircleAlert, Clock3, MapPin, Mountain, Navigation, TentTree, Users } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { CampgroundCard } from "@/components/campground-card";
 import { getCampgroundBySlug, getRelatedCampgrounds } from "@/lib/campgrounds/repository";
@@ -11,78 +11,39 @@ import { getCampgroundBySlug, getRelatedCampgrounds } from "@/lib/campgrounds/re
 const rupiah = new Intl.NumberFormat("id-ID");
 const verificationLabel = { verified: "Terverifikasi ICL", community_updated: "Diperbarui komunitas", needs_update: "Perlu diperbarui" };
 const verificationTone = { verified: "bg-[#eaf2ec] text-forest-800", community_updated: "bg-[#eef3e7] text-forest-800", needs_update: "bg-[#fff3dd] text-[#76531c]" };
-
 type CampgroundDetailProps = { params: Promise<{ slug: string }> };
-
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ params }: CampgroundDetailProps): Promise<Metadata> {
-  const { slug } = await params;
-  const campground = await getCampgroundBySlug(slug);
-  if (!campground) return { title: "Campground tidak ditemukan" };
-  return { title: campground.name, description: campground.shortDescription, openGraph: { title: campground.name, description: campground.shortDescription, images: [campground.image] } };
-}
+export async function generateMetadata({ params }: CampgroundDetailProps): Promise<Metadata> { const { slug }=await params; const campground=await getCampgroundBySlug(slug); if(!campground)return{title:"Campground tidak ditemukan"}; return{title:campground.name,description:campground.shortDescription,openGraph:{title:campground.name,description:campground.shortDescription,images:[campground.image]}}; }
 
 export default async function CampgroundDetailPage({ params }: CampgroundDetailProps) {
-  const { slug } = await params;
-  const campground = await getCampgroundBySlug(slug);
-  if (!campground) notFound();
-  const related = await getRelatedCampgrounds(campground, 3);
-  const hasVerificationDate = campground.lastVerifiedAt !== "1970-01-01";
-  const verifiedDate = hasVerificationDate ? new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "long", year: "numeric" }).format(new Date(`${campground.lastVerifiedAt}T00:00:00`)) : "Belum diverifikasi";
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${campground.latitude},${campground.longitude}`;
-  const locationLine = [campground.district, campground.regency, campground.province].filter(Boolean).join(", ");
+  const {slug}=await params; const campground=await getCampgroundBySlug(slug); if(!campground)notFound(); const related=await getRelatedCampgrounds(campground,3);
+  const hasVerificationDate=campground.lastVerifiedAt!=="1970-01-01"; const verifiedDate=hasVerificationDate?new Intl.DateTimeFormat("id-ID",{day:"numeric",month:"long",year:"numeric"}).format(new Date(`${campground.lastVerifiedAt}T00:00:00`)):"Belum diverifikasi";
+  const mapsUrl=`https://www.google.com/maps/search/?api=1&query=${campground.latitude},${campground.longitude}`; const locationLine=[campground.district,campground.regency,campground.province].filter(Boolean).join(", ");
+  return <main><SiteHeader/><div className="container-icl py-7 md:py-10">
+    <Link href="/camping" className="icl-focus inline-flex items-center gap-2 rounded-lg text-sm font-bold text-forest-700"><ArrowLeft size={16}/>Kembali ke Jelajah Camping</Link>
+    <section className="mt-6 overflow-hidden rounded-[28px] border border-black/5 bg-white shadow-sm md:rounded-[32px]">
+      <div className="relative aspect-[16/10] bg-forest-100 sm:aspect-[16/8] lg:aspect-[2.15/1]"><Image src={campground.image} alt={campground.photos[0]?.altText||`Foto ${campground.name}`} fill priority className="object-cover" sizes="100vw"/><div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/70 via-black/20 to-transparent"/><div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-7 md:p-9 lg:p-10"><div className="flex flex-wrap items-center gap-2"><span className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold shadow-sm ${verificationTone[campground.verificationStatus]}`}><CheckCircle2 size={14}/>{verificationLabel[campground.verificationStatus]}</span>{campground.types.map(type=><span key={type} className="rounded-full border border-white/25 bg-black/25 px-3 py-1.5 text-xs font-bold backdrop-blur-sm">{type}</span>)}</div><h1 className="mt-4 max-w-4xl text-3xl font-extrabold tracking-[-0.035em] sm:text-4xl md:text-5xl lg:text-6xl">{campground.name}</h1><p className="mt-3 flex max-w-3xl items-start gap-2 text-sm font-semibold text-white/90 sm:text-base"><MapPin className="mt-0.5 shrink-0" size={18}/><span>{locationLine||campground.address}</span></p></div></div>
+      <div className="grid gap-6 p-5 sm:p-7 md:p-9 lg:grid-cols-[1fr_auto] lg:items-center lg:p-10"><div><p className="max-w-3xl text-base leading-7 text-black/65 md:text-lg md:leading-8">{campground.shortDescription}</p><p className="mt-3 flex items-start gap-2 text-sm leading-6 text-black/50"><MapPin className="mt-0.5 shrink-0" size={16}/>{campground.address}</p></div><div className="flex flex-wrap gap-3 lg:justify-end">{campground.priceFrom>0?<div className="min-w-[170px] rounded-2xl bg-sand px-5 py-4"><p className="text-[11px] font-bold uppercase tracking-wide text-black/45">Harga mulai</p><p className="mt-1 text-xl font-extrabold text-forest-900">Rp{rupiah.format(campground.priceFrom)}</p><p className="text-xs text-black/45">per {campground.priceUnit}</p></div>:<div className="min-w-[170px] rounded-2xl bg-sand px-5 py-4"><p className="text-[11px] font-bold uppercase tracking-wide text-black/45">Harga</p><p className="mt-1 text-base font-extrabold text-forest-900">Belum tersedia</p></div>}<a href={mapsUrl} target="_blank" rel="noreferrer" className="icl-button-primary icl-focus min-h-[58px] px-6 py-3 text-sm"><Navigation size={17}/>Petunjuk arah</a></div></div>
+    </section>
 
-  return <main><SiteHeader/>
-    <div className="container-icl py-7 md:py-10">
-      <Link href="/camping" className="icl-focus inline-flex items-center gap-2 rounded-lg text-sm font-bold text-forest-700"><ArrowLeft size={16}/>Kembali ke Jelajah Camping</Link>
+    <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start"><div>
+      <section className="grid grid-cols-2 gap-3 md:grid-cols-4"><Fact icon={<Mountain size={20}/>} label="Elevasi" value={campground.elevationM?`${campground.elevationM.toLocaleString("id-ID")} mdpl`:"—"}/><Fact icon={<Users size={20}/>} label="Kapasitas" value={campground.capacityPeople?`${campground.capacityPeople.toLocaleString("id-ID")} orang`:"—"}/><Fact icon={<Car size={20}/>} label="Akses" value={campground.access.includes("Mobil")?"Mobil masuk":campground.access[0]??"—"}/><Fact icon={<TentTree size={20}/>} label="Tipe" value={campground.types[0]??"Camping"}/></section>
 
-      <section className="mt-6 overflow-hidden rounded-[28px] border border-black/5 bg-white shadow-sm md:rounded-[32px]">
-        <div className="relative aspect-[16/10] bg-forest-100 sm:aspect-[16/8] lg:aspect-[2.15/1]">
-          <Image src={campground.image} alt={campground.photos[0]?.altText || `Foto ${campground.name}`} fill priority className="object-cover" sizes="100vw"/>
-          <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/70 via-black/20 to-transparent"/>
-          <div className="absolute inset-x-0 bottom-0 p-5 text-white sm:p-7 md:p-9 lg:p-10">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold shadow-sm ${verificationTone[campground.verificationStatus]}`}><CheckCircle2 size={14}/>{verificationLabel[campground.verificationStatus]}</span>
-              {campground.types.map(type => <span key={type} className="rounded-full border border-white/25 bg-black/25 px-3 py-1.5 text-xs font-bold text-white backdrop-blur-sm">{type}</span>)}
-            </div>
-            <h1 className="mt-4 max-w-4xl text-3xl font-extrabold tracking-[-0.035em] sm:text-4xl md:text-5xl lg:text-6xl">{campground.name}</h1>
-            <p className="mt-3 flex max-w-3xl items-start gap-2 text-sm font-semibold text-white/90 sm:text-base"><MapPin className="mt-0.5 shrink-0" size={18}/><span>{locationLine || campground.address}</span></p>
-          </div>
-        </div>
+      {campground.description&&<section className="mt-12 border-t border-black/10 pt-10"><p className="icl-eyebrow">Tentang tempat ini</p><h2 className="mt-2 text-2xl font-extrabold tracking-tight">Kenali campground sebelum berangkat</h2><p className="mt-5 max-w-3xl whitespace-pre-line text-base leading-8 text-black/65">{campground.description}</p></section>}
 
-        <div className="grid gap-6 p-5 sm:p-7 md:p-9 lg:grid-cols-[1fr_auto] lg:items-center lg:p-10">
-          <div>
-            <p className="max-w-3xl text-base leading-7 text-black/65 md:text-lg md:leading-8">{campground.shortDescription}</p>
-            <p className="mt-3 flex items-start gap-2 text-sm leading-6 text-black/50"><MapPin className="mt-0.5 shrink-0" size={16}/>{campground.address}</p>
-          </div>
-          <div className="flex flex-wrap gap-3 lg:justify-end">
-            {campground.priceFrom > 0 ? <div className="min-w-[170px] rounded-2xl bg-sand px-5 py-4"><p className="text-[11px] font-bold uppercase tracking-wide text-black/45">Harga mulai</p><p className="mt-1 text-xl font-extrabold text-forest-900">Rp{rupiah.format(campground.priceFrom)}</p><p className="text-xs text-black/45">per {campground.priceUnit}</p></div> : <div className="min-w-[170px] rounded-2xl bg-sand px-5 py-4"><p className="text-[11px] font-bold uppercase tracking-wide text-black/45">Harga</p><p className="mt-1 text-base font-extrabold text-forest-900">Belum tersedia</p></div>}
-            <a href={mapsUrl} target="_blank" rel="noreferrer" className="icl-button-primary icl-focus min-h-[58px] px-6 py-3 text-sm"><Navigation size={17}/>Petunjuk arah</a>
-          </div>
-        </div>
-      </section>
+      <section className="mt-12 border-t border-black/10 pt-10"><p className="icl-eyebrow">Fasilitas</p><h2 className="mt-2 text-2xl font-extrabold tracking-tight">Yang tersedia di lokasi</h2>{campground.facilityDetails.length>0?<div className="mt-6 grid gap-3 sm:grid-cols-2">{campground.facilityDetails.map((item,index)=><div key={`${item.name}-${index}`} className="flex items-start gap-3 rounded-2xl border border-black/5 bg-white p-4"><span className="mt-0.5 grid size-7 shrink-0 place-items-center rounded-full bg-[#eaf2ec] text-forest-700"><Check size={15}/></span><div><p className="text-sm font-bold">{item.name}</p>{item.note&&<p className="mt-1 text-xs leading-5 text-black/50">{item.note}</p>}</div></div>)}</div>:<p className="mt-4 text-sm text-black/50">Informasi fasilitas belum tersedia.</p>}</section>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start">
-        <div>
-          <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Fact icon={<Mountain size={20}/>} label="Elevasi" value={campground.elevationM ? `${campground.elevationM.toLocaleString("id-ID")} mdpl` : "—"}/>
-            <Fact icon={<Car size={20}/>} label="Akses" value={campground.access.includes("Mobil") ? "Mobil masuk" : campground.access[0] ?? "—"}/>
-            <Fact icon={<TentTree size={20}/>} label="Tipe" value={campground.types[0] ?? "Camping"}/>
-            <Fact icon={<CalendarCheck size={20}/>} label="Data" value={verifiedDate}/>
-          </section>
+      <section className="mt-12 border-t border-black/10 pt-10"><p className="icl-eyebrow">Akses & kecocokan</p><div className="mt-6 grid gap-8 md:grid-cols-2"><div><h2 className="text-xl font-extrabold">Akses kendaraan</h2>{campground.accessDescription&&<p className="mt-3 text-sm leading-6 text-black/55">{campground.accessDescription}</p>}<div className="mt-4 space-y-2">{campground.accessDetails.length>0?campground.accessDetails.map((item,index)=><div key={`${item.vehicleType}-${index}`} className="rounded-2xl bg-sand px-4 py-3"><p className="text-sm font-bold">{item.vehicleType}</p>{item.note&&<p className="mt-1 text-xs leading-5 text-black/50">{item.note}</p>}</div>):<span className="text-sm text-black/50">Belum ada data akses.</span>}</div></div><div><h2 className="text-xl font-extrabold">Cocok untuk</h2><div className="mt-4 flex flex-wrap gap-2">{campground.suitableFor.length>0?campground.suitableFor.map(item=><span key={item} className="rounded-full bg-sand px-3 py-2 text-sm font-semibold">{item}</span>):<span className="text-sm text-black/50">Belum ada data kecocokan.</span>}</div></div></div></section>
 
-          <section className="mt-12 border-t border-black/10 pt-10"><p className="icl-eyebrow">Fasilitas</p><h2 className="mt-2 text-2xl font-extrabold tracking-tight">Yang tersedia di lokasi</h2>{campground.facilities.length > 0 ? <div className="mt-6 grid gap-3 sm:grid-cols-2 md:grid-cols-3">{campground.facilities.map(item => <div key={item} className="flex items-center gap-3 rounded-2xl border border-black/5 bg-white p-4 text-sm font-semibold"><span className="grid size-7 place-items-center rounded-full bg-[#eaf2ec] text-forest-700"><Check size={15}/></span>{item}</div>)}</div> : <p className="mt-4 text-sm text-black/50">Informasi fasilitas belum tersedia.</p>}</section>
-
-          <section className="mt-12 border-t border-black/10 pt-10"><p className="icl-eyebrow">Akses & kecocokan</p><div className="mt-6 grid gap-8 md:grid-cols-2"><div><h2 className="text-xl font-extrabold">Akses kendaraan</h2><div className="mt-4 flex flex-wrap gap-2">{campground.access.length > 0 ? campground.access.map(item => <span key={item} className="rounded-full bg-sand px-3 py-2 text-sm font-semibold">{item}</span>) : <span className="text-sm text-black/50">Belum ada data akses.</span>}</div></div><div><h2 className="text-xl font-extrabold">Cocok untuk</h2><div className="mt-4 flex flex-wrap gap-2">{campground.suitableFor.length > 0 ? campground.suitableFor.map(item => <span key={item} className="rounded-full bg-sand px-3 py-2 text-sm font-semibold">{item}</span>) : <span className="text-sm text-black/50">Belum ada data kecocokan.</span>}</div></div></div></section>
-        </div>
-
-        <aside className="icl-card p-6 lg:sticky lg:top-28"><p className="text-xs font-bold uppercase tracking-wide text-black/40">Ringkasan lokasi</p><p className="mt-3 text-lg font-extrabold text-forest-900">{campground.regency || campground.province}</p><p className="mt-2 text-sm leading-6 text-black/55">{campground.address}</p><div className="my-6 border-t border-black/10"/><p className="text-sm font-bold">Status data</p><div className="mt-3 flex items-center gap-2 text-sm font-semibold text-forest-800"><CheckCircle2 size={17}/>{verificationLabel[campground.verificationStatus]}</div><p className="mt-2 text-xs leading-5 text-black/45">{hasVerificationDate ? `Terakhir diperiksa ${verifiedDate}.` : "Data ini belum memiliki tanggal verifikasi."}</p><a href={mapsUrl} target="_blank" rel="noreferrer" className="icl-button-secondary icl-focus mt-6 w-full px-5 py-3 text-sm"><Navigation size={17}/>Buka di peta</a><p className="mt-5 text-xs leading-5 text-black/45">Periksa kembali kondisi, harga, dan operasional terbaru sebelum berangkat.</p></aside>
-      </div>
-
-      {related.length > 0 && <section className="mt-20 border-t border-black/10 pt-12"><p className="icl-eyebrow">Lanjut menjelajah</p><h2 className="mt-2 text-3xl font-extrabold tracking-tight">Campground terkait</h2><div className="mt-7 grid gap-5 md:grid-cols-3">{related.map(item => <CampgroundCard key={item.id} campground={item}/>)}</div></section>}
+      {(campground.checkInInfo||campground.goodToKnow)&&<section className="mt-12 border-t border-black/10 pt-10"><p className="icl-eyebrow">Sebelum berangkat</p><h2 className="mt-2 text-2xl font-extrabold tracking-tight">Informasi penting untuk camper</h2><div className="mt-6 grid gap-4 md:grid-cols-2">{campground.checkInInfo&&<InfoPanel icon={<Clock3 size={20}/>} title="Check-in & kedatangan" text={campground.checkInInfo}/>} {campground.goodToKnow&&<InfoPanel icon={<CircleAlert size={20}/>} title="Perlu diketahui" text={campground.goodToKnow}/>}</div></section>}
     </div>
-  </main>;
+
+    <aside className="icl-card p-6 lg:sticky lg:top-28"><p className="text-xs font-bold uppercase tracking-wide text-black/40">Ringkasan lokasi</p><p className="mt-3 text-lg font-extrabold text-forest-900">{campground.regency||campground.province}</p><p className="mt-2 text-sm leading-6 text-black/55">{campground.address}</p><div className="my-6 border-t border-black/10"/><p className="text-sm font-bold">Status data</p><div className="mt-3 flex items-center gap-2 text-sm font-semibold text-forest-800"><CheckCircle2 size={17}/>{verificationLabel[campground.verificationStatus]}</div><p className="mt-2 text-xs leading-5 text-black/45">{hasVerificationDate?`Terakhir diperiksa ${verifiedDate}.`:"Data ini belum memiliki tanggal verifikasi."}</p><div className="mt-5 flex items-center gap-2 text-xs text-black/45"><CalendarCheck size={15}/>{verifiedDate}</div><a href={mapsUrl} target="_blank" rel="noreferrer" className="icl-button-secondary icl-focus mt-6 w-full px-5 py-3 text-sm"><Navigation size={17}/>Buka di peta</a><p className="mt-5 text-xs leading-5 text-black/45">Periksa kembali kondisi, harga, dan operasional terbaru sebelum berangkat.</p></aside></div>
+
+    {related.length>0&&<section className="mt-20 border-t border-black/10 pt-12"><p className="icl-eyebrow">Lanjut menjelajah</p><h2 className="mt-2 text-3xl font-extrabold tracking-tight">Campground terkait</h2><div className="mt-7 grid gap-5 md:grid-cols-3">{related.map(item=><CampgroundCard key={item.id} campground={item}/>)}</div></section>}
+  </div></main>;
 }
 
-function Fact({ icon, label, value }: { icon: ReactNode; label: string; value: string }) { return <div className="rounded-2xl border border-black/5 bg-white p-4"><span className="text-forest-700">{icon}</span><p className="mt-3 text-xs text-black/45">{label}</p><p className="mt-1 text-sm font-extrabold">{value}</p></div>; }
+function Fact({icon,label,value}:{icon:ReactNode;label:string;value:string}){return <div className="rounded-2xl border border-black/5 bg-white p-4"><span className="text-forest-700">{icon}</span><p className="mt-3 text-xs text-black/45">{label}</p><p className="mt-1 text-sm font-extrabold">{value}</p></div>}
+function InfoPanel({icon,title,text}:{icon:ReactNode;title:string;text:string}){return <div className="rounded-2xl border border-black/5 bg-white p-5"><span className="text-forest-700">{icon}</span><h3 className="mt-3 text-base font-extrabold">{title}</h3><p className="mt-2 whitespace-pre-line text-sm leading-6 text-black/55">{text}</p></div>}
