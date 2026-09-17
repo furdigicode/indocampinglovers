@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import maplibregl from "maplibre-gl";
+import { Map, Marker, NavigationControl, Popup } from "maplibre-gl";
 
 type CampgroundDetailMapProps = {
   name: string;
@@ -15,7 +15,7 @@ export function CampgroundDetailMap({ name, latitude, longitude }: CampgroundDet
   useEffect(() => {
     if (!containerRef.current || !Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
 
-    const map = new maplibregl.Map({
+    const map = new Map({
       container: containerRef.current,
       style: "https://tiles.openfreemap.org/styles/liberty",
       center: [longitude, latitude],
@@ -23,10 +23,10 @@ export function CampgroundDetailMap({ name, latitude, longitude }: CampgroundDet
       attributionControl: { compact: true },
     });
 
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    map.addControl(new NavigationControl({ showCompass: false }), "top-right");
 
-    const popup = new maplibregl.Popup({ offset: 18, closeButton: false }).setText(name);
-    const marker = new maplibregl.Marker().setLngLat([longitude, latitude]).setPopup(popup).addTo(map);
+    const popup = new Popup({ offset: 18, closeButton: false }).setText(name);
+    const marker = new Marker().setLngLat([longitude, latitude]).setPopup(popup).addTo(map);
 
     map.on("load", () => {
       map.resize();
