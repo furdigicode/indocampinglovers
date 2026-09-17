@@ -88,12 +88,14 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
       });
       map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
 
-      const resetActiveMarker = () => {
+      const closeActivePreview = () => {
+        const popup = activePopup;
+        activePopup = undefined;
         if (activeMarker) setMarkerSelected(activeMarker, false);
         activeMarker = undefined;
-        activePopup = undefined;
+        popup?.remove();
       };
-      map.on("click", resetActiveMarker);
+      map.on("click", closeActivePreview);
 
       const bounds = new maplibre.LngLatBounds();
       for (const campground of campgrounds) {
@@ -107,8 +109,7 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
 
         const openPreview = () => {
           if (!map) return;
-          activePopup?.remove();
-          if (activeMarker && activeMarker !== marker) setMarkerSelected(activeMarker, false);
+          closeActivePreview();
           setMarkerSelected(marker, true);
           activeMarker = marker;
           const popup = new maplibre.Popup({ closeButton: true, closeOnClick: false, maxWidth: "300px", offset: 28 })
@@ -116,13 +117,19 @@ export function CampgroundMap({ campgrounds }: { campgrounds: Campground[] }) {
             .setDOMContent(createPopupContent(campground))
             .addTo(map);
           activePopup = popup;
-          popup.once("close", () => { if (activePopup === popup) resetActiveMarker(); });
+          popup.once("close", () => {
+            if (activePopup === popup) {
+              activePopup = undefined;
+              if (activeMarker) setMarkerSelected(activeMarker, false);
+              activeMarker = undefined;
+            }
+          });
         };
 
         element.addEventListener("click", (event) => { event.stopPropagation(); openPreview(); });
         element.addEventListener("keydown", (event) => {
           if (event.key === "Enter" || event.key === " ") { event.preventDefault(); event.stopPropagation(); openPreview(); }
-          if (event.key === "Escape") activePopup?.remove();
+          if (event.key === "Escape") { event.preventDefault(); closeActivePreview(); }
         });
         markers.push(marker);
       }
