@@ -5,6 +5,10 @@
 -- These records deliberately use source_url so M3.5 can be visually tested
 -- without manually uploading binary files to Supabase Storage. Production
 -- campground photos should still normally use the campground-photos bucket.
+--
+-- This fixture intentionally replaces ALL photo metadata for the fictional
+-- campground `icl-qa-m3-detail`. That keeps reruns deterministic and avoids
+-- the one-approved-cover unique constraint when an older QA cover exists.
 
 begin;
 
@@ -20,10 +24,10 @@ begin
     raise exception 'Run supabase/fixtures/m3_detail_qa.sql first: campground icl-qa-m3-detail not found';
   end if;
 
-  -- Idempotent cleanup for this fixture only.
+  -- QA campground only: remove previous photo metadata, including any older
+  -- approved cover created by an earlier M3 fixture run.
   delete from public.campground_photos
-  where campground_id = v_campground
-    and storage_path like 'qa-external/m3-qa-%';
+  where campground_id = v_campground;
 
   insert into public.campground_photos
     (campground_id, storage_path, alt_text, caption, credit_name, source_url, is_cover, status, sort_order)
@@ -79,5 +83,4 @@ select
 from public.campground_photos p
 join public.campgrounds c on c.id = p.campground_id
 where c.slug = 'icl-qa-m3-detail'
-  and p.storage_path like 'qa-external/m3-qa-%'
 order by p.sort_order;
