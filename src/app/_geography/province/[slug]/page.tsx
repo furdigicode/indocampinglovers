@@ -11,7 +11,7 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
   const province=await getProvinceLanding(slug);
   if(!province)return{title:"Provinsi tidak ditemukan",robots:{index:false,follow:true}};
   return{
-    title:`Tempat Camping di ${province.name} | IndoCampingLovers`,
+    title:`Tempat Camping di ${province.name}`,
     description:`Jelajahi ${province.publishedCampgroundCount} campground di ${province.name} dalam direktori IndoCampingLovers.`,
     alternates:{canonical:`/camping/${province.slug}`},
     robots:province.publishedCampgroundCount>0?{index:true,follow:true}:{index:false,follow:true},
