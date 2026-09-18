@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { ImagePlus, Trash2 } from "lucide-react";
 import type { ContributionReferenceData } from "@/lib/submissions/reference-data";
 
 const steps = ["Tempat", "Informasi", "Foto", "Pengirim"];
@@ -20,6 +21,9 @@ export function AddCampgroundWizard({ reference }: { reference: ContributionRefe
   const [error,setError]=useState("");
   const [sending,setSending]=useState(false);
   const [referenceCode,setReferenceCode]=useState("");
+  const [photos,setPhotos]=useState<Array<{file:File;url:string}>>([]);
+  const [photoError,setPhotoError]=useState("");
+  useEffect(()=>()=>photos.forEach(x=>URL.revokeObjectURL(x.url)),[photos]);
   const regencies=useMemo(()=>reference.regencies.filter(x=>x.provinceId===form.provinceId),[reference.regencies,form.provinceId]);
   const set=(key:string,value:unknown)=>setForm(prev=>({...prev,[key]:value}));
   const toggle=(key:"typeIds"|"facilityIds"|"access",value:string)=>setForm(prev=>({...prev,[key]:prev[key].includes(value)?prev[key].filter(x=>x!==value):[...prev[key],value]}));
@@ -30,11 +34,15 @@ export function AddCampgroundWizard({ reference }: { reference: ContributionRefe
     return "";
   }
   function next(){const message=validateCurrent();if(message){setError(message);return}setError("");setStep(x=>Math.min(3,x+1));}
+  function addPhotos(e:ChangeEvent<HTMLInputElement>){const incoming=Array.from(e.target.files??[]);e.target.value="";setPhotoError("");const accepted:Array<{file:File;url:string}>=[];for(const file of incoming){if(!["image/jpeg","image/png","image/webp"].includes(file.type)){setPhotoError("Gunakan foto JPEG, PNG, atau WebP.");continue}if(file.size>8*1024*1024){setPhotoError("Setiap foto maksimal 8 MB.");continue}accepted.push({file,url:URL.createObjectURL(file)})}setPhotos(prev=>{const room=Math.max(0,5-prev.length);if(accepted.length>room)setPhotoError("Maksimal 5 foto per submission.");accepted.slice(room).forEach(x=>URL.revokeObjectURL(x.url));return [...prev,...accepted.slice(0,room)]})}
+  function removePhoto(index:number){setPhotos(prev=>{const target=prev[index];if(target)URL.revokeObjectURL(target.url);return prev.filter((_,i)=>i!==index)})}
+  async function uploadPhotos(code:string){for(const photo of photos){const fd=new FormData();fd.append("referenceCode",code);fd.append("file",photo.file);const response=await fetch("/api/submissions/campgrounds/photos",{method:"POST",body:fd});const data=await response.json();if(!response.ok)throw new Error(data.error||`Foto ${photo.file.name} gagal diunggah.`)}}
   async function submit(e:FormEvent){e.preventDefault();const message=validateCurrent();if(message){setError(message);return}setSending(true);setError("");
     try{
       const response=await fetch("/api/submissions/campgrounds",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({...form,price:form.price?{amountIdr:Number(form.price),unit:form.priceUnit}:undefined,idempotencyKey})});
       const data=await response.json();
       if(!response.ok)throw new Error(data.error||"Submission gagal dikirim.");
+      if(photos.length) await uploadPhotos(data.referenceCode);
       setReferenceCode(data.referenceCode);
     }catch(err){setError(err instanceof Error?err.message:"Submission gagal dikirim.");}finally{setSending(false)}
   }
@@ -52,13 +60,13 @@ export function AddCampgroundWizard({ reference }: { reference: ContributionRefe
         <ChoiceGroup label="Akses kendaraan" options={accessOptions.map(x=>({id:x,name:x}))} selected={form.access} toggle={v=>toggle("access",v)}/>
         <div className="grid gap-4 sm:grid-cols-2"><Field label="Harga mulai (Rp) — opsional"><input type="number" min="0" value={form.price} onChange={e=>set("price",e.target.value)} className="icl-form-control" placeholder="25000"/></Field><Field label="Satuan harga"><input value={form.priceUnit} onChange={e=>set("priceUnit",e.target.value)} className="icl-form-control"/></Field></div>
         <Field label="Catatan tambahan — opsional"><textarea value={form.notes} onChange={e=>set("notes",e.target.value)} className="icl-form-control" placeholder="Jam buka, kondisi jalan, aturan lokasi, kontak, atau informasi lain"/></Field></div>}
-      {step===2&&<div className="py-8 text-center"><p className="icl-eyebrow">Langkah 3</p><h2 className="mt-2 text-3xl font-extrabold">Foto lokasi</h2><div className="mx-auto mt-6 max-w-lg rounded-2xl bg-sand p-6"><p className="font-bold">Upload foto hadir di M5.4</p><p className="mt-2 text-sm leading-6 text-black/55">Untuk saat ini kamu bisa melanjutkan tanpa foto. Foto akan memakai jalur upload terkontrol dan moderation sebelum tampil publik.</p></div></div>}
+      {step===2&&<div><p className="icl-eyebrow">Langkah 3</p><h2 className="mt-2 text-3xl font-extrabold">Tambahkan foto lokasi</h2><p className="mt-2 text-sm leading-6 text-black/55">Opsional. Maksimal 5 foto, masing-masing 8 MB. JPEG, PNG, atau WebP. Foto akan diperiksa sebelum dapat tampil publik.</p><label className="mt-6 flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-forest-800/25 bg-sand/60 p-6 text-center transition hover:border-forest-800/50 hover:bg-sand"><ImagePlus size={28} className="text-forest-800"/><span className="mt-3 font-extrabold text-forest-900">Pilih foto</span><span className="mt-1 text-xs text-black/50">{photos.length}/5 foto dipilih</span><input className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" multiple onChange={addPhotos} disabled={photos.length>=5}/></label>{photoError&&<p className="mt-3 text-sm font-semibold text-red-700">{photoError}</p>}{photos.length>0&&<div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">{photos.map((photo,i)=><div key={`${photo.file.name}-${i}`} className="relative overflow-hidden rounded-2xl border border-black/10 bg-white"><img src={photo.url} alt={`Preview ${i+1}`} className="aspect-[4/3] w-full object-cover"/><button type="button" onClick={()=>removePhoto(i)} aria-label={`Hapus ${photo.file.name}`} className="icl-focus absolute right-2 top-2 grid size-9 place-items-center rounded-full bg-white/95 text-red-700 shadow"><Trash2 size={16}/></button><p className="truncate px-3 py-2 text-xs font-semibold">{photo.file.name}</p></div>)}</div>}</div>}
       {step===3&&<div className="space-y-5"><div><p className="icl-eyebrow">Langkah 4</p><h2 className="mt-2 text-3xl font-extrabold">Terakhir, tentang kamu</h2><p className="mt-2 text-sm text-black/55">Kami memakai kontak ini hanya bila perlu mengklarifikasi kontribusi.</p></div>
         <Field label="Nama"><input value={form.submitterName} onChange={e=>set("submitterName",e.target.value)} className="icl-form-control" /></Field><Field label="Email / WhatsApp"><input value={form.submitterContact} onChange={e=>set("submitterContact",e.target.value)} className="icl-form-control" /></Field>
         <label className="flex gap-3 rounded-2xl border border-black/10 p-4 text-sm leading-6"><input type="checkbox" checked={form.consent} onChange={e=>set("consent",e.target.checked)} className="mt-1"/><span>Saya mengizinkan IndoCampingLovers menggunakan informasi yang saya kirim untuk memelihara direktori camping.</span></label></div>}
     </div>
     {error&&<p role="alert" className="mt-6 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700">{error}</p>}
-    <div className="icl-form-actions mt-9 flex items-center justify-between gap-3 border-t border-black/10 pt-6">{step>0?<button type="button" onClick={()=>{setError("");setStep(x=>x-1)}} className="icl-button-secondary">← Kembali</button>:<span/>}{step<3?<button type="button" onClick={next} className="icl-button-primary">Lanjutkan →</button>:<button disabled={sending} className="icl-button-primary disabled:opacity-50">{sending?"Mengirim...":"Kirim usulan"}</button>}</div>
+    <div className="icl-form-actions mt-9 flex items-center justify-between gap-3 border-t border-black/10 pt-6">{step>0?<button type="button" onClick={()=>{setError("");setStep(x=>x-1)}} className="icl-button-secondary">← Kembali</button>:<span/>}{step<3?<button type="button" onClick={next} className="icl-button-primary">Lanjutkan →</button>:<button disabled={sending} className="icl-button-primary disabled:opacity-50">{sending?(photos.length?"Mengirim & mengunggah foto...":"Mengirim..."):"Kirim usulan"}</button>}</div>
   </form>;
 }
 function Field({label,children}:{label:string;children:React.ReactNode}){return <label className="block"><span className="mb-2 block text-sm font-extrabold text-forest-900">{label}</span>{children}</label>}
