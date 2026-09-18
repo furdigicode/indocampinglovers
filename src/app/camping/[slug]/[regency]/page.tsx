@@ -12,7 +12,7 @@ export async function generateMetadata({params}:Props):Promise<Metadata>{
   if(!geography)return{title:"Wilayah tidak ditemukan",robots:{index:false,follow:true}};
   const canonical=`/camping/${geography.province.slug}/${geography.slug}`;
   return{
-    title:`Tempat Camping di ${geography.name}, ${geography.province.name} | IndoCampingLovers`,
+    title:`Tempat Camping di ${geography.name}, ${geography.province.name}`,
     description:`Jelajahi ${geography.publishedCampgroundCount} campground di ${geography.name}, ${geography.province.name} dalam direktori IndoCampingLovers.`,
     alternates:{canonical},
     robots:geography.publishedCampgroundCount>0?{index:true,follow:true}:{index:false,follow:true},
