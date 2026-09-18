@@ -16,7 +16,7 @@ export function middleware(request:NextRequest){
   const match=request.nextUrl.pathname.match(/^\/camping\/([^/]+)\/?$/);
   if(!match||!PROVINCE_SLUGS.has(match[1]))return NextResponse.next();
   const url=request.nextUrl.clone();
-  url.pathname=`/_geography/province/${match[1]}`;
+  url.pathname=`/geography/province/${match[1]}`;
   return NextResponse.rewrite(url);
 }
 
