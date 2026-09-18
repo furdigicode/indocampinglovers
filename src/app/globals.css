@@ -65,3 +65,18 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .container-icl { width: min(100% - 24px, 1180px); }
   .icl-map-popup { min-width: 200px; max-width: 235px; padding: 15px; }
 }
+
+/* Contribution forms */
+.icl-form-control {
+  width:100%; min-height:52px; border:1px solid #d9ddd8; border-radius:14px;
+  background:#fff; padding:0 16px; color:var(--icl-ink); outline:none;
+  transition:border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+textarea.icl-form-control { min-height:112px; padding:14px 16px; resize:vertical; line-height:1.55; }
+select.icl-form-control { appearance:auto; cursor:pointer; }
+.icl-form-control::placeholder { color:#9aa39c; }
+.icl-form-control:hover { border-color:#b9c1ba; }
+.icl-form-control:focus { border-color:var(--icl-leaf); box-shadow:0 0 0 4px rgba(55,99,70,.11); }
+.icl-form-control:disabled { cursor:not-allowed; background:#f3f3ef; color:#9aa39c; }
+.icl-form-actions .icl-button-primary,
+.icl-form-actions .icl-button-secondary { min-height:48px; padding:0 22px; }
