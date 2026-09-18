@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronRight, MapPin } from "lucide-react";
 import { SiteHeader } from "@/components/site-header";
 import { CampgroundCard } from "@/components/campground-card";
+import { JsonLd, breadcrumbJsonLd, campgroundItemListJsonLd } from "@/components/json-ld";
 import { parseCampgroundDirectoryQuery } from "@/lib/campgrounds/directory-query";
 import { getCampgroundDirectory } from "@/lib/campgrounds/repository";
 import type { ProvinceLanding, RegencyLanding } from "@/lib/campgrounds/geography";
@@ -25,6 +26,8 @@ export async function ProvinceGeographicLanding({ province }: { province: Provin
 
   return (
     <main>
+      <JsonLd data={breadcrumbJsonLd([{ name: "Camping", path: "/camping" }, { name: province.name, path: `/camping/${province.slug}` }])} />
+      {directory.items.length > 0 && <JsonLd data={campgroundItemListJsonLd(`Campground di ${province.name}`, `/camping/${province.slug}`, directory.items.slice(0, 6))} />}
       <SiteHeader />
       <div className="container-icl py-8 md:py-12">
         <Breadcrumb items={[{ label: "Camping", href: "/camping" }, { label: province.name }]} />
@@ -74,6 +77,8 @@ export async function RegencyGeographicLanding({ regency }: { regency: RegencyLa
 
   return (
     <main>
+      <JsonLd data={breadcrumbJsonLd([{ name: "Camping", path: "/camping" }, { name: regency.province.name, path: `/camping/${regency.province.slug}` }, { name: regency.name, path: `/camping/${regency.province.slug}/${regency.slug}` }])} />
+      {directory.items.length > 0 && <JsonLd data={campgroundItemListJsonLd(`Campground di ${regency.name}, ${regency.province.name}`, `/camping/${regency.province.slug}/${regency.slug}`, directory.items)} />}
       <SiteHeader />
       <div className="container-icl py-8 md:py-12">
         <Breadcrumb items={[{ label: "Camping", href: "/camping" }, { label: regency.province.name, href: `/camping/${regency.province.slug}` }, { label: regency.name }]} />
